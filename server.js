@@ -18,7 +18,7 @@ mongoose
   .catch((err) => console.error(err));
   
 app.get('/api/test',(req,res)=>{
-    res.send("Hello World!");
+    res.send("Hello World! v2");
 })
 
 

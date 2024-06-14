@@ -31,3 +31,4 @@ jobs:
            touch .env
            echo "PORT= ${{ secrets.PORT }}" >> .env
            echo "MONGO_URL = ${{ secrets.MONGO_URL }}" >> .env
+    - run: pm2 restart BackendAPI
