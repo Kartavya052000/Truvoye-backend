@@ -18,8 +18,9 @@ mongoose
   .catch((err) => console.error(err));
   
 app.get('/api/test',(req,res)=>{
-    res.send("working");
+    res.send("Hello World!");
 })
+
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
   });

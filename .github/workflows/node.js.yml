@@ -29,4 +29,5 @@ jobs:
     - run: npm ci
     - run: |
            touch .env
-           echo "PORT =${{ secrets.PORT }}" >> .env
+           echo "PORT= ${{ secrets.PORT }}" >> .env
+           echo "MONGO_URL = ${{ secrets.MONGO_URL }}" >> .env
