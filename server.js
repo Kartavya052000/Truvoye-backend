@@ -12,6 +12,8 @@ app.use(
       credentials: true,
     })
   );
+
+
 mongoose
   .connect(MONGO_URL)
   .then(() => console.log("MongoDB is  connected successfully"))
@@ -20,6 +22,9 @@ mongoose
 app.get('/',(req,res)=>{
     res.send("working");
 })
+
+
+
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
   });
