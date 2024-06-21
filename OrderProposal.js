@@ -25,14 +25,7 @@ app.get('/OrderProposal', (req, res) => {
   res.send("working");
 });
 
-// POST route for order proposal
-app.post('/OrderProposal', (req, res) => {
-  const { pickup_address, receivers_address, weight } = req.body;
 
-  console.log(pickup_address, receivers_address, weight);
-
-  res.send("Order Proposal working");
-});
 
 // Start server
 app.listen(PORT, () => {
