@@ -23,6 +23,7 @@ module.exports.Signup = async (req, res, next) => {
     //     withCredentials: true,
     //     httpOnly: false,
     //   });
+    
     // Send email with the password reset link containing the token
     const verifyLink = `https://localhost:3000/verify-email/${token}`;
     const mailOptions = {
