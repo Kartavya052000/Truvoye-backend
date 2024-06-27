@@ -8,6 +8,4 @@ router.post('/reset-password/:token',ResetPassword)
 router.post('/verify-account/:token',VerifyAccount)
 
 
-
-
 module.exports = router
