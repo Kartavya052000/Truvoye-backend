@@ -37,8 +37,11 @@ app.get('/api/test',(req,res)=>{
 app.use("/api/auth", authRoute);
 
 app.use("/api/orderDetails", orderRoute);
+app.use("/api/order", orderRoute);
 
 app.use("/api/SubmitOrder", submitOrder);
+
+
 
 app.use("/api/driver", driverRoute);
 
