@@ -3,9 +3,10 @@
 const express = require('express');
 const router = express.Router();
 const { orderProposal, submitOrder } = require('../Controllers/OrderController');
+const userVerification = require('../Middlewares/AuthMiddleware');
 
-router.post('/OrderProposal', orderProposal);
-router.post('/SubmitOrder', submitOrder);
+router.post('/OrderProposal',userVerification, orderProposal);
+router.post('/SubmitOrder',userVerification, submitOrder);
 
 
 module.exports = router;
