@@ -130,6 +130,7 @@ module.exports.Get = async (req, res, next) => {
   const { id } = req.params;
   const lastId = req.query.lastId;
   const limit = parseInt(req.query.limit) || 10;
+  console.log(req.query)
   const isAssigned = req.query.active === "false" ? false : true;
 
   try {
@@ -145,7 +146,7 @@ module.exports.Get = async (req, res, next) => {
       let query = {};
 
       query.isAssigned = isAssigned;
-
+console.log(query)
       if (lastId) {
         query = { _id: { $gt: ObjectId(lastId) } };
       }

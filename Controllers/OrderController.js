@@ -136,12 +136,12 @@ console.log("Are toy there ")
     } else {
       let query = {};
 
-      query.order_status = status;
+      // query.order_status = status;
 
       if (lastId) {
         query._id = { $gt: ObjectId(lastId) };
       }
-
+console.log(query)
       const orders = await Order.find(query).limit(limit).exec();
 
       res.status(200).json(orders);
