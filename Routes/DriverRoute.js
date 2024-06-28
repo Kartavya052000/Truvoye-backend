@@ -3,7 +3,7 @@ const userVerification = require('../Middlewares/AuthMiddleware');
 
 const router = require('express').Router()
 
-router.post('/add', Add);
+router.post('/add',userVerification, Add);
 router.post('/reset-password/:token', ResetPassword);
 router.post('/login', Login);
 router.post('/forget-password', ForgetPassword);

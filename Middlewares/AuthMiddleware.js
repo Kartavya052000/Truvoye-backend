@@ -4,13 +4,14 @@ require("dotenv").config();
 
 const userVerification = async (req, res, next) => {
   try {
+    // console.log(req.headers,"HHHH")
     const token = req.headers.authorization;
 
     if (!token) {
       return res.status(401).json({ status: "User token expired" });
     }
 
-    const decodedToken = jwt.verify(token, process.env.TOKEN_KEY);
+    const decodedToken = jwt.verify(token.replace("Bearer ", ""), process.env.TOKEN_KEY); // Replace "Bearer " with an empty string
 
     const user = await User.findById(decodedToken.id);
 

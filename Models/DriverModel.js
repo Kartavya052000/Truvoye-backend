@@ -23,7 +23,7 @@ const driverSchema = new mongoose.Schema({
     default: false, // Default value is false
   },
   address: {
-    type: String,
+    type: Object,
     required: [true, "Your address is required"],
   },
   phone: {
