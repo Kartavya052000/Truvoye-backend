@@ -38,7 +38,7 @@ module.exports.Add = async (req, res, next) => {
     await driver.save();
 
     // TODO : update the link when hosting
-    const verifyLink = `http://localhost:3000/api/driver/reset-password/${token}`;
+    const verifyLink = `http://localhost:3000/driver/reset-password/${token}`;
     const mailOptions = {
       from: "kartavyabhayana1@gmail.com",
       to: email,
@@ -146,7 +146,7 @@ module.exports.Get = async (req, res, next) => {
       let query = {};
 
       query.isAssigned = isAssigned;
-console.log(query)
+       console.log(query)
       if (lastId) {
         query = { _id: { $gt: ObjectId(lastId) } };
       }

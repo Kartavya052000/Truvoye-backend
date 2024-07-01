@@ -9,6 +9,10 @@ const orderDetail = new mongoose.Schema({
     ref: 'ClientDetail',
     required: true,
   },
+  driver_id: {
+    type: ObjectId,
+    ref: 'Driver', // Reference to the Driver model
+  },
   pickup_date: {
     type: Date,
   },
@@ -29,7 +33,7 @@ const orderDetail = new mongoose.Schema({
   },
   order_status:{
     type: Number,
-    enum: [0, 1, 2],
+    enum: [0, 1],
     required: true 
   }
   // created_by:{

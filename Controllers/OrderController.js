@@ -1,5 +1,6 @@
 //OrderController.js: Contains the logic for the /OrderProposal route, including calling the Google Distance Matrix API.
 const Order = require("../Models/OrderModel");
+const Driver = require("../Models/DriverModel");
 const Client = require("../Models/ClientModel");
 const axios = require("axios");
 require("dotenv").config();
@@ -204,9 +205,39 @@ const search = async (req, res, next) => {
   next();
 };
 
+
+const assignOrderToDriver = async (req, res, next) => {
+  const { orderId, driverId } = req.body;
+
+  try {
+    // Find the order by orderId
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Find the driver by driverId
+    const driver = await Driver.findById(driverId);
+    if (!driver) {
+      return res.status(404).json({ error: "Driver not found" });
+    }
+
+    // Assign driver_id to the order
+    order.driver_id = driverId;
+    // order.order_status =1   // to change order status to assigned
+    await order.save();
+
+    res.json({ message: "Order assigned to driver successfully", order });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error assigning order to driver" });
+  }
+};
+
 module.exports = {
   orderProposal,
   submitOrder,
   get,
-  search
+  search,
+  assignOrderToDriver
 };
