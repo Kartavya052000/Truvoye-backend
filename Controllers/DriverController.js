@@ -29,6 +29,7 @@ module.exports.Add = async (req, res, next) => {
       phone,
       truckLicensePlateNumber,
       driverLicense,
+      isAssigned: false,
     });
 
     const token = createSecretToken(driver._id);
@@ -37,7 +38,7 @@ module.exports.Add = async (req, res, next) => {
     await driver.save();
 
     // TODO : update the link when hosting
-    const verifyLink = `http://localhost:3000/api/driver/reset-password/${token}`;
+    const verifyLink = `http://localhost:3000/driver/reset-password/${token}`;
     const mailOptions = {
       from: "kartavyabhayana1@gmail.com",
       to: email,
@@ -117,16 +118,20 @@ module.exports.ResetPassword = async (req, res, next) => {
  * Query Parameters:
  * @param {string} [limit=10] - The maximum number of records to return. Defaults to 10 if not provided.
  * @param {string} lastId - The ID of the last driver from the previous response. If provided, returns records starting after this ID.
+ * @param {string} [isAssigned=false] - The status of the driver is if it is assigned order or not, default false
  *
  * Examples:
  * - GET /drivers/get/:id - Returns the driver associated with the provided ID.
  * - GET /drivers/get?limit=30 - Returns the first 30 driver records.
  * - GET /drivers/get?limit=30&lastId=LAST_DRIVER_ID - Returns the next 30 driver records starting after the provided lastId.
+ * - GET /drivers/get?limit=30&lastId=LAST_DRIVER_ID&isAssigned=false - Returns the next 30 unassigned driver records starting after the provided lastId
  */
 module.exports.Get = async (req, res, next) => {
   const { id } = req.params;
   const lastId = req.query.lastId;
   const limit = parseInt(req.query.limit) || 10;
+  console.log(req.query)
+  const isAssigned = req.query.active === "false" ? false : true;
 
   try {
     if (id) {
@@ -140,6 +145,8 @@ module.exports.Get = async (req, res, next) => {
     } else {
       let query = {};
 
+      query.isAssigned = isAssigned;
+       console.log(query)
       if (lastId) {
         query = { _id: { $gt: ObjectId(lastId) } };
       }
@@ -151,6 +158,56 @@ module.exports.Get = async (req, res, next) => {
   } catch (error) {
     console.error(error.stack);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+
+  next();
+};
+
+/**
+ * Search Drivers in the database
+ *
+ * @description This endpoint allows you to search for Drivers based on the  fields.
+ * The search is case-insensitive and supports partial matches using regular expressions.
+ *
+ * Query Parameters:
+ * @param {string} query - The search term to match against the `pickup_address` and `receiver_address` fields.
+ * @param {number} [page=1] - The page number for pagination. Defaults to 1 if not provided.
+ * @param {number} [limit=10] - The maximum number of records to return per page. Defaults to 10 if not provided.
+ *
+ * Examples:
+ * - GET /api/driver/search?query=john - Returns drivers where contains john
+ * - GET /api/driver/search?query=john&page=2&limit=5 - Returns the second page of drivers with 5 driver per page, where the data contains "john".
+ */
+module.exports.Search = async (req, res, next) => {
+  const { query, page = 1, limit = 10 } = req.query;
+
+  // Validate input
+  if (!query) {
+    return res.status(400).json({ error: "Query is required" });
+  }
+
+  // Create a regular expression for partial text search
+  const regex = new RegExp(query, "i");
+
+  // Create a search criteria object for the specified fields
+  const searchCriteria = {
+    $or: [{ username: regex }, { email: regex }, {address : regex}, {phone : regex}, {truckLicensePlateNumber : regex}, {driverLicense : regex}],
+  };
+
+  try {
+    const total = await Driver.countDocuments(searchCriteria);
+    const drivers = await Driver.find(searchCriteria)
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    res.json({
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      drivers,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Error searching drivers" });
   }
 
   next();
