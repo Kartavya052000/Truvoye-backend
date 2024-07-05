@@ -44,8 +44,8 @@ module.exports.Add = async (req, res, next) => {
     const mailOptions = {
       from: "kartavyabhayana1@gmail.com",
       to: email,
-      subject: "Password Reset Request",
-      html: `Click <a href="${verifyLink}">here</a> Create new password and login.`,
+      subject: "Verification for the account",
+      html: `Click <a href="${verifyLink}">here</a> to verify your account.`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -131,7 +131,7 @@ module.exports.ResetPassword = async (req, res, next) => {
 module.exports.Get = async (req, res, next) => {
   const { id } = req.params;
   const lastId = req.query.lastId;
-  const limit = parseInt(req.query.limit) || 10;
+  const limit = parseInt(req.query.limit) || 100;
   console.log(req.query);
   const isAssigned = req.query.active === "false" ? false : true;
 
@@ -359,7 +359,9 @@ module.exports.ForgetPassword = async (req, res, next) => {
     await driver.save();
 
     // Send email with the password reset link containing the token
-    const resetLink = `https://localhost:3000/api/driver/reset-password/${token}`;
+    const resetLink = `${process.env.PRODUCTION_LINK}api/driver/reset-password/${token}`;
+
+    // const resetLink = `https://localhost:3000/api/driver/reset-password/${token}`;
     const mailOptions = {
       from: "kartavyabhayana1@gmail.com",
       to: email,
@@ -380,11 +382,12 @@ module.exports.ForgetPassword = async (req, res, next) => {
 
 // api/driver/getOrders?id="DRIVER_ID"&orderStatus="ORDER_STATUS"
 module.exports.GetOrders = async (req, res, next) => {
-  const { driverId, orderStatus } = req.query;
+  const { orderStatus } = req.query;
+  const driverId = req.user._id;
+console.log(driverId)
   try {
     if (driverId) {
       let query = {};
-
       if (driverId) {
         query.driver_id = driverId;
       } else {

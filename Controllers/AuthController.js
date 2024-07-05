@@ -3,6 +3,7 @@ const { createSecretToken } = require("../util/SecretToken");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const transporter = require('../nodemailerConfig');
+const { PRODUCTION_LINK } = process.env;
 
 // Function for SignUp
 module.exports.Signup = async (req, res, next) => {
@@ -25,11 +26,13 @@ module.exports.Signup = async (req, res, next) => {
     //   });
     
     // Send email with the password reset link containing the token
-    const verifyLink = `https://localhost:3000/verify-email/${token}`;
+    // const verifyLink = `http://localhost:3000/verify-email/${token}`;
+    const resetLink = `${process.env.PRODUCTION_LINK}verify-email/${token}`;
+    
     const mailOptions = {
       from: 'kartavyabhayana1@gmail.com',
       to: email,
-      subject: 'Password Reset Request',
+      subject: 'Account Verification email',
       html: `Click <a href="${verifyLink}">here</a> to confirm your email address.`,
     };
 
@@ -128,7 +131,8 @@ module.exports.Signup = async (req, res, next) => {
       await user.save();
   
       // Send email with the password reset link containing the token
-      const resetLink = `https://localhost:3000/reset-password/${token}`;
+      const resetLink = `${process.env.PRODUCTION_LINK}reset-password/${token}`;
+      console.log(resetLink);
       const mailOptions = {
         from: 'kartavyabhayana1@gmail.com',
         to: email,
@@ -172,5 +176,4 @@ module.exports.Signup = async (req, res, next) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   };
-
 

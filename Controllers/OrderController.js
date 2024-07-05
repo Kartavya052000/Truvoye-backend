@@ -221,7 +221,7 @@ const assignOrderToDriver = async (req, res, next) => {
     if (!driver) {
       return res.status(404).json({ error: "Driver not found" });
     }
-
+  
     // Assign driver_id to the order
     order.driver_id = driverId;
     order.order_status =1   // to change order status to assigned
