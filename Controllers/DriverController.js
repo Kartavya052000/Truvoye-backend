@@ -3,6 +3,8 @@ const { createSecretToken } = require("../util/SecretToken");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const transporter = require("../nodemailerConfig");
+const OrderModel = require("../Models/OrderModel");
+const ClientModel = require("../Models/ClientModel");
 
 module.exports.Add = async (req, res, next) => {
   try {
@@ -121,16 +123,16 @@ module.exports.ResetPassword = async (req, res, next) => {
  * @param {string} [isAssigned=false] - The status of the driver is if it is assigned order or not, default false
  *
  * Examples:
- * - GET /drivers/get/:id - Returns the driver associated with the provided ID.
- * - GET /drivers/get?limit=30 - Returns the first 30 driver records.
- * - GET /drivers/get?limit=30&lastId=LAST_DRIVER_ID - Returns the next 30 driver records starting after the provided lastId.
- * - GET /drivers/get?limit=30&lastId=LAST_DRIVER_ID&isAssigned=false - Returns the next 30 unassigned driver records starting after the provided lastId
+ * - GET /driver/get/:id - Returns the driver associated with the provided ID.
+ * - GET /driver/get?limit=30 - Returns the first 30 driver records.
+ * - GET /driver/get?limit=30&lastId=LAST_DRIVER_ID - Returns the next 30 driver records starting after the provided lastId.
+ * - GET /driver/get?limit=30&lastId=LAST_DRIVER_ID&isAssigned=false - Returns the next 30 unassigned driver records starting after the provided lastId
  */
 module.exports.Get = async (req, res, next) => {
   const { id } = req.params;
   const lastId = req.query.lastId;
   const limit = parseInt(req.query.limit) || 10;
-  console.log(req.query)
+  console.log(req.query);
   const isAssigned = req.query.active === "false" ? false : true;
 
   try {
@@ -146,7 +148,7 @@ module.exports.Get = async (req, res, next) => {
       let query = {};
 
       query.isAssigned = isAssigned;
-       console.log(query)
+      console.log(query);
       if (lastId) {
         query = { _id: { $gt: ObjectId(lastId) } };
       }
@@ -191,7 +193,14 @@ module.exports.Search = async (req, res, next) => {
 
   // Create a search criteria object for the specified fields
   const searchCriteria = {
-    $or: [{ username: regex }, { email: regex }, {address : regex}, {phone : regex}, {truckLicensePlateNumber : regex}, {driverLicense : regex}],
+    $or: [
+      { username: regex },
+      { email: regex },
+      { address: regex },
+      { phone: regex },
+      { truckLicensePlateNumber: regex },
+      { driverLicense: regex },
+    ],
   };
 
   try {
@@ -362,6 +371,153 @@ module.exports.ForgetPassword = async (req, res, next) => {
     res
       .status(200)
       .json({ message: "Check your email for password reset instructions" });
+  } catch (error) {
+    console.error(error.stack);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+  next();
+};
+
+// api/driver/getOrders?id="DRIVER_ID"&orderStatus="ORDER_STATUS"
+module.exports.GetOrders = async (req, res, next) => {
+  const { driverId, orderStatus } = req.query;
+  try {
+    if (driverId) {
+      let query = {};
+
+      if (driverId) {
+        query.driver_id = driverId;
+      } else {
+        return res.status(404).json({ error: "Driver id is required" });
+      }
+
+      if (orderStatus) {
+        query.order_status = orderStatus;
+      }
+
+      const orders = await OrderModel.find(query).exec();
+
+      if (!orders) {
+        return res
+          .status(404)
+          .json({ error: "No orders found associated with that id" });
+      }
+
+      res.status(201).json({ orders });
+    }
+  } catch (error) {
+    console.error(error.stack);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+  next();
+};
+
+module.exports.UpdateOrder = async (req, res, next) => {
+  const { orderId } = req.query;
+  const { orderStatus } = req.body;
+  try {
+    if (orderId) {
+      const order = await OrderModel.findOne({ _id: orderId });
+
+      if (!order) {
+        return res
+          .status(404)
+          .json({ error: "No order found associated with that id" });
+      }
+
+      order.order_status = orderStatus;
+
+      await order.save();
+
+      res.status(201).json({ order });
+    } else {
+      return res.status(404).json({ error: "Order id is required" });
+    }
+  } catch (error) {
+    console.error(error.stack);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+  next();
+};
+
+module.exports.GenerateOTP = async (req, res, next) => {
+  const { orderId } = req.query;
+  const { otp } = req.body;
+  try {
+    if (orderId) {
+      const order = await OrderModel.findOne({ _id: orderId });
+
+      if (!order) {
+        return res
+          .status(404)
+          .json({ error: "No order found associated with that order" });
+      }
+
+      const client = await ClientModel.findOne({ _id: order.client_id });
+      if (!client) {
+        return res
+          .status(404)
+          .json({ error: "No client found associated with that order" });
+      }
+
+      const email = client.receivers_email;
+      const otp = Math.floor(1000 + Math.random() * 9000);
+      const mailOptions = {
+        from: "kartavyabhayana1@gmail.com",
+        to: email,
+        subject: "OTP for Your delivery ",
+        html: `<div style="text-align: center;"> <br>Give this OTP to our representative to confirm your package delivery</br> <h1><b>${otp}</b></h1> </div>`,
+      };
+
+      order.otp = otp;
+
+      await transporter.sendMail(mailOptions);
+      await order.save();
+
+      res
+        .status(201)
+        .json({ message: "OTP sent to the recipient successfully" });
+    } else {
+      return res.status(404).json({ error: "Order id is required" });
+    }
+  } catch (error) {
+    console.error(error.stack);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+  next();
+};
+
+module.exports.VerifyOTP = async (req, res, next) => {
+  const { orderId } = req.query;
+  const { otp } = req.body;
+
+  try {
+    if (orderId) {
+      const order = await OrderModel.findOne({ _id: orderId });
+
+      if (!order) {
+        return res
+          .status(404)
+          .json({ error: "No order found associated with that order" });
+      }
+
+      if(otp == order.otp){
+
+        order.order_status = 3;
+        order.otp = undefined;
+        order.completed_on = new Date(); 
+        await order.save();
+
+        res
+        .status(201)
+        .json({ message: "Verification Successful Order Completed !" });
+      }else{
+        return res.status(401).json({ error: "The OTP entered is invalid" });
+      }
+
+    } else {
+      return res.status(404).json({ error: "Order id is required" });
+    }
   } catch (error) {
     console.error(error.stack);
     res.status(500).json({ error: "Internal Server Error" });

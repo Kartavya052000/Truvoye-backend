@@ -33,8 +33,14 @@ const orderDetail = new mongoose.Schema({
   },
   order_status:{
     type: Number,
-    enum: [0, 1],
+    enum: [0, 1, 2, 3],    // 0 - unassigned, 1- assigned, 2- progress, 3- completed
     required: true 
+  },
+  otp:{
+    type: Number
+  },
+  completed_on:{
+    type: Date
   }
   // created_by:{
   //   type:mongoose.Schema.Types.ObjectId
