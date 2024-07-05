@@ -4,7 +4,7 @@ require("dotenv").config();
 
 const userVerification = async (req, res, next) => {
   try {
-    // console.log(req.headers,"HHHH")
+    console.log(req.headers,"HHHH")
     const token = req.headers.authorization;
 
     if (!token) {
