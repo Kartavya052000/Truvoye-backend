@@ -41,7 +41,9 @@ module.exports.Add = async (req, res, next) => {
     await driver.save();
 
     // TODO : update the link when hosting
+    // const verifyLink = `http://localhost:3000/driver/reset-password/${token}`;
     const verifyLink = `http://localhost:3000/driver/reset-password/${token}`;
+
     const mailOptions = {
       from: "kartavyabhayana1@gmail.com",
       to: email,
@@ -134,8 +136,13 @@ module.exports.ResetPassword = async (req, res, next) => {
 module.exports.Get = async (req, res, next) => {
   const { id } = req.params;
   // const isAssigned = req.query.active === "false" ? false : true;
-  const { query, page = 1, limit = 10, isAssigned } = req.query;
+  const { query, page = 1, limit = 10, isAssigned,count } = req.query;
   console.log(req.query);
+  if (count && count ==0) {
+    // If query includes count=0, get total count from Driver
+    const totalCount = await Driver.countDocuments();
+    return res.status(200).json({ totalCount });
+  }
 
   try {
     if (
