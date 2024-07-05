@@ -31,4 +31,8 @@ jobs:
            touch .env
            echo "PORT= ${{ secrets.PORT }}" >> .env
            echo "MONGO_URL = ${{ secrets.MONGO_URL }}" >> .env
+           echo "TOKEN_KEY = ${{ secrets.TOKEN_KEY }}" >> .env
+           echo "PRODUCTION_LINK = ${{ secrets.PRODUCTION_LINK }}" >> .env
+           echo "GOOGLE_API_KEY = ${{ secrets.GOOGLE_API_KEY }}" >> .env
+
     - run: pm2 restart BackendAPI
