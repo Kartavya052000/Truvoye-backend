@@ -16,7 +16,7 @@ const orderDetail = new mongoose.Schema({
   pickup_date: {
     type: Date,
   },
-  pickup_address: {
+  pickup_address: { 
     type: Object,
     required: true,
   },

@@ -224,7 +224,7 @@ const assignOrderToDriver = async (req, res, next) => {
 
     // Assign driver_id to the order
     order.driver_id = driverId;
-    // order.order_status =1   // to change order status to assigned
+    order.order_status =1   // to change order status to assigned
     await order.save();
 
     res.json({ message: "Order assigned to driver successfully", order });

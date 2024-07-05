@@ -141,7 +141,7 @@ module.exports.Get = async (req, res, next) => {
         return res.status(404).json({ error: "Driver not found" });
       }
 
-      res.status(201).json({ driver });
+      res.status(201).json( driver );
     } else {
       let query = {};
 
