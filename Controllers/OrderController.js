@@ -86,9 +86,18 @@ const submitOrder = async (req, res) => {
       pickup_address,
       receiver_address,
       weight,
-      order_status : 0
+      order_status: 0,
+      client_info: {
+        senders_name,
+        senders_email,
+        receivers_name,
+        receivers_email,
+      },
     });
+
     order.save();
+    console.log(order)
+
     res.send("Data sent successfully!");
   } catch (error) {
     console.error(error);
@@ -98,54 +107,100 @@ const submitOrder = async (req, res) => {
 };
 
 /**
- * Retrieve Orders  from database
+ * Retrieve Orders from database
  *
  * @description This function handles two scenarios:
- * 1. If a Orders ID is provided in the URL parameters, it returns the Order associated with that ID.
- * 2. If no Orders ID is provided, it returns a paginated list of Orders.
+ * 1. If an Order ID is provided in the URL parameters, it returns the Order associated with that ID.
+ * 2. If no Order ID is provided, it returns a paginated list of Orders based on optional query parameters.
  *
  * URL Parameters:
  * @param {string} id - The unique ID of the Order. If provided, returns the Order with this ID.
  *
  * Query Parameters:
- * @param {string} [limit=10] - The maximum number of records to return. Defaults to 10 if not provided.
+ * @param {string} [limit=10] - The maximum number of records to return per page. Defaults to 10 if not provided.
  * @param {string} lastId - The ID of the last Order from the previous response. If provided, returns records starting after this ID.
- * @param {string} [status=1] - The status of the Order 0 - unassigned, 1- assigned, 2 - completed. Defaults to 0 if not provided
+ * @param {string} [status=0] - The status of the Order: 0 - unassigned, 1 - assigned, 2 - completed. Defaults to 0 if not provided.
+ * @param {string} query - The search term to match against pickup_address, receiver_address, and driver's username.
  *
  * Examples:
  * - GET /Order/get/:id - Returns the order associated with the provided ID.
  * - GET /Order/get?limit=30 - Returns the first 30 order records.
  * - GET /Order/get?limit=30&lastId=LAST_ORDER_ID - Returns the next 30 order records starting after the provided lastId.
- * - GET /Order/get?limit=30&lastId=LAST_ORDER_ID&status=0 - Returns the next 30 unassigned order records starting after the provided lastId
+ * - GET /Order/get?limit=30&lastId=LAST_ORDER_ID&status=0 - Returns the next 30 unassigned order records starting after the provided lastId.
+ * - GET /Order/get?query=Main%20Street - Returns orders where pickup_address or receiver_address contains "Main Street".
+ * - GET /Order/get?query=David - Returns orders where the driver's username contains "David".
  */
 const get = async (req, res, next) => {
-console.log("Are toy there ")
-
   const { id } = req.params;
-  const lastId = req.query.lastId;
-  const limit = parseInt(req.query.limit) || 10;
-  const status = req.query.status || 0;
+  const { query, page = 1, limit = 10, status } = req.query;
+
   try {
     if (id) {
-      const order = await Order.findById(id).populate("client_id");
+      // Fetch a specific order by ID
+      const order = await Order.findById(id)
+        .populate("client_id")
+        .populate("driver_id");
 
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
 
-      res.status(201).json({ order });
+      res.status(200).json({ order });
     } else {
-      let query = {};
+      // Initialize search criteria
+      let searchCriteria = {};
 
-      // query.order_status = status;
-
-      if (lastId) {
-        query._id = { $gt: ObjectId(lastId) };
+      // Add query search criteria
+      if (query) {
+        const regex = new RegExp(query, "i");
+        searchCriteria.$or = [
+          { "pickup_address.address_name": regex },
+          { "receiver_address.address_name": regex },
+          { "client_info.receivers_email": regex },
+          { "client_info.receivers_name": regex },
+          { "client_info.senders_email": regex },
+          { "client_info.senders_name": regex },
+          { "driver_info.username": regex }
+        ];
       }
-console.log(query)
-      const orders = await Order.find(query).limit(limit).exec();
 
-      res.status(200).json(orders);
+      // Add status search criteria
+      if (status) {
+        searchCriteria.order_status = status;
+      }
+
+      // Default search criteria if no query or status is provided
+      if (!query && !status) {
+        searchCriteria.$or = [
+          { "pickup_address.address_name": { $exists: true } },
+          { "receiver_address.address_name": { $exists: true } },
+          { "client_info.receivers_email": { $exists: true } },
+          { "client_info.receivers_name": { $exists: true } },
+          { "client_info.senders_email": { $exists: true } },
+          { "client_info.senders_name": { $exists: true } },
+        ];
+      }
+
+      // Calculate the skip value
+      const skip = (Number(page) - 1) * Number(limit);
+
+      // Count total documents matching the search criteria
+      const total = await Order.countDocuments(searchCriteria);
+
+      // Fetch orders with pagination using skip and limit
+      const orders = await Order.find(searchCriteria)
+        .sort({  created_at: -1, _id: 1 })  // Ensure consistent sorting
+        .skip(skip)  // Skip the first N documents
+        .limit(Number(limit))  // Apply limit to the number of documents returned
+        .populate("driver_id", "username")
+        .exec();
+
+      res.status(200).json({
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        orders,
+      });
     }
   } catch (error) {
     console.error(error.stack);
@@ -205,9 +260,8 @@ const search = async (req, res, next) => {
   next();
 };
 
-
 const assignOrderToDriver = async (req, res, next) => {
-  const { orderId, driverId } = req.body;
+  const { orderId, driverId, username } = req.body;
 
   try {
     // Find the order by orderId
@@ -221,10 +275,11 @@ const assignOrderToDriver = async (req, res, next) => {
     if (!driver) {
       return res.status(404).json({ error: "Driver not found" });
     }
-  
+
     // Assign driver_id to the order
     order.driver_id = driverId;
-    order.order_status =1   // to change order status to assigned
+    order.driver_info = {username};
+    order.order_status = 1; // to change order status to assigned
     await order.save();
 
     res.json({ message: "Order assigned to driver successfully", order });
@@ -239,5 +294,5 @@ module.exports = {
   submitOrder,
   get,
   search,
-  assignOrderToDriver
+  assignOrderToDriver,
 };

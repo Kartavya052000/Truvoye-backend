@@ -41,6 +41,12 @@ const orderDetail = new mongoose.Schema({
   },
   completed_on:{
     type: Date
+  },
+  driver_info:{
+    type: Object
+  },
+  client_info:{
+    type: Object
   }
   // created_by:{
   //   type:mongoose.Schema.Types.ObjectId
