@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const transporter = require("../nodemailerConfig");
 const OrderModel = require("../Models/OrderModel");
 const ClientModel = require("../Models/ClientModel");
+const { default: mongoose } = require("mongoose");
 
 module.exports.Add = async (req, res, next) => {
   try {
@@ -108,54 +109,91 @@ module.exports.ResetPassword = async (req, res, next) => {
 };
 
 /**
- * Retrieve Drivers from database
+ * Retrieve Drivers from the database
  *
  * @description This function handles two scenarios:
  * 1. If a driver ID is provided in the URL parameters, it returns the driver associated with that ID.
- * 2. If no driver ID is provided, it returns a paginated list of drivers.
+ * 2. If no driver ID is provided, it returns a paginated list of drivers based on query parameters.
  *
  * URL Parameters:
  * @param {string} id - The unique ID of the driver. If provided, returns the driver with this ID.
  *
  * Query Parameters:
- * @param {string} [limit=10] - The maximum number of records to return. Defaults to 10 if not provided.
- * @param {string} lastId - The ID of the last driver from the previous response. If provided, returns records starting after this ID.
- * @param {string} [isAssigned=false] - The status of the driver is if it is assigned order or not, default false
+ * @param {string} [query] - A search string to filter drivers by username, email, address, phone, truck license plate number, or driver license.
+ * @param {number} [page=1] - The page number for pagination. Defaults to 1 if not provided.
+ * @param {number} [limit=10] - The maximum number of records to return per page. Defaults to 10 if not provided.
+ * @param {boolean} [isAssigned] - The status of the driver's assignment. If provided, filters drivers based on their assignment status.
  *
  * Examples:
  * - GET /driver/get/:id - Returns the driver associated with the provided ID.
  * - GET /driver/get?limit=30 - Returns the first 30 driver records.
- * - GET /driver/get?limit=30&lastId=LAST_DRIVER_ID - Returns the next 30 driver records starting after the provided lastId.
- * - GET /driver/get?limit=30&lastId=LAST_DRIVER_ID&isAssigned=false - Returns the next 30 unassigned driver records starting after the provided lastId
+ * - GET /driver/get?query=john - Returns driver records matching the query "john".
+ * - GET /driver/get?page=2&limit=30 - Returns the second page of driver records with 30 records per page.
+ * - GET /driver/get?isAssigned=true - Returns drivers that are assigned.
  */
 module.exports.Get = async (req, res, next) => {
   const { id } = req.params;
-  const lastId = req.query.lastId;
-  const limit = parseInt(req.query.limit) || 100;
+  // const isAssigned = req.query.active === "false" ? false : true;
+  const { query, page = 1, limit = 10, isAssigned } = req.query;
   console.log(req.query);
-  const isAssigned = req.query.active === "false" ? false : true;
 
   try {
-    if (id && id !== 'null') {
+    if (
+      mongoose.Types.ObjectId.isValid(id) &&
+      id !== "null" &&
+      id !== "undefined"
+    ) {
       const driver = await Driver.findOne({ _id: id });
+      // Handle the driver object
 
       if (!driver) {
         return res.status(404).json({ error: "Driver not found" });
       }
 
-      res.status(201).json( driver );
+      res.status(201).json(driver);
     } else {
-      let query = {};
+      let searchCriteria = {};
 
-      query.isAssigned = isAssigned;
-      console.log(query);
-      if (lastId) {
-        query = { _id: { $gt: ObjectId(lastId) } };
+      if (query) {
+        const regex = new RegExp(query, "i");
+        searchCriteria.$or = [
+          { username: regex },
+          { email: regex },
+          { address: regex },
+          { phone: regex },
+          { truckLicensePlateNumber: regex },
+          { driverLicense: regex },
+        ];
       }
 
-      const drivers = await Driver.find(query).limit(limit).exec();
+      if (isAssigned) {
+        searchCriteria.isAssigned = isAssigned;
+      }
 
-      res.status(200).json(drivers);
+      if (!query) {
+        searchCriteria.$or = [
+          { username: { $exists: true } },
+          { email: { $exists: true } },
+          { address: { $exists: true } },
+          { phone: { $exists: true } },
+          { truckLicensePlateNumber: { $exists: true } },
+          { driverLicense: { $exists: true } },
+        ];
+      }
+
+      const total = await Driver.countDocuments(searchCriteria);
+      const drivers = await Driver.find(searchCriteria)
+        .sort({ created_at: -1, _id: 1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit))
+        .exec();
+
+      res.json({
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        drivers,
+      });
     }
   } catch (error) {
     console.error(error.stack);
@@ -384,7 +422,7 @@ module.exports.ForgetPassword = async (req, res, next) => {
 module.exports.GetOrders = async (req, res, next) => {
   const { orderStatus } = req.query;
   const driverId = req.user._id;
-console.log(driverId)
+  console.log(driverId);
   try {
     if (driverId) {
       let query = {};
@@ -504,20 +542,18 @@ module.exports.VerifyOTP = async (req, res, next) => {
           .json({ error: "No order found associated with that order" });
       }
 
-      if(otp == order.otp){
-
+      if (otp == order.otp) {
         order.order_status = 3;
         order.otp = undefined;
-        order.completed_on = new Date(); 
+        order.completed_on = new Date();
         await order.save();
 
         res
-        .status(201)
-        .json({ message: "Verification Successful Order Completed !" });
-      }else{
+          .status(201)
+          .json({ message: "Verification Successful Order Completed !" });
+      } else {
         return res.status(401).json({ error: "The OTP entered is invalid" });
       }
-
     } else {
       return res.status(404).json({ error: "Order id is required" });
     }
