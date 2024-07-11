@@ -47,6 +47,10 @@ const orderDetail = new mongoose.Schema({
   },
   client_info:{
     type: Object
+  },
+  cost: {
+    type: Number,
+    required: true,
   }
   // created_by:{
   //   type:mongoose.Schema.Types.ObjectId
