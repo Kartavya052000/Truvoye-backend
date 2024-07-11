@@ -136,7 +136,7 @@ module.exports.Get = async (req, res, next) => {
   const isAssigned = req.query.active === "false" ? false : true;
 
   try {
-    if (id) {
+    if (id && id !== 'null') {
       const driver = await Driver.findOne({ _id: id });
 
       if (!driver) {
