@@ -70,7 +70,11 @@ const submitOrder = async (req, res) => {
     senders_email,
     receivers_name,
     receivers_email,
+    cost,
+    distance,
+    duration
   } = req.body;
+
   try {
     const newClient = new Client({
       senders_name,
@@ -93,10 +97,13 @@ const submitOrder = async (req, res) => {
         receivers_name,
         receivers_email,
       },
+      cost,
+      distance,
+      duration
     });
 
     order.save();
-    console.log(order)
+    console.log(order);
 
     res.send("Data sent successfully!");
   } catch (error) {
@@ -157,7 +164,7 @@ const get = async (req, res, next) => {
           { "client_info.receivers_name": regex },
           { "client_info.senders_email": regex },
           { "client_info.senders_name": regex },
-          { "driver_info.username": regex }
+          { "driver_info.username": regex },
         ];
       }
 
@@ -181,9 +188,9 @@ const get = async (req, res, next) => {
       const total = await Order.countDocuments(searchCriteria);
 
       const orders = await Order.find(searchCriteria)
-        .sort({  created_at: -1, _id: 1 })  
-        .skip(skip) 
-        .limit(Number(limit)) 
+        .sort({ created_at: -1, _id: 1 })
+        .skip(skip)
+        .limit(Number(limit))
         .populate("driver_id", "username")
         .exec();
 
@@ -270,7 +277,7 @@ const assignOrderToDriver = async (req, res, next) => {
 
     // Assign driver_id to the order
     order.driver_id = driverId;
-    order.driver_info = {username};
+    order.driver_info = { username };
     order.order_status = 1; // to change order status to assigned
     await order.save();
 

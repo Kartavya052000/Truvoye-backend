@@ -50,7 +50,12 @@ const orderDetail = new mongoose.Schema({
   },
   cost: {
     type: Number,
-    required: true,
+  },
+  distance: {
+    type: String,
+  },
+  duration:{
+    type: String,
   }
   // created_by:{
   //   type:mongoose.Schema.Types.ObjectId
