@@ -8,7 +8,7 @@ const userVerification = require('../Middlewares/AuthMiddleware');
 // router.post('/OrderProposal',userVerification, orderProposal);
 router.post('/OrderProposal', orderProposal);
 router.post('/SubmitOrder',userVerification, submitOrder);
-router.post('/get/:id?',userVerification, get);
+router.post('/get/:id?', get);
 router.post('/search',userVerification, search);
 router.post('/assign-order',userVerification, assignOrderToDriver);
 
