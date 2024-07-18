@@ -137,12 +137,26 @@ const submitOrder = async (req, res) => {
  * - GET /order/get?query=David - Returns orders where the driver's username contains "David".
  * - GET /order/get?status=0 - Returns orders that are unassigned.
  */
+
+
+
+
 const get = async (req, res, next) => {
   const { id } = req.params;
   const { query, page = 1, limit = 10, status } = req.query;
 
   try {
+    let revenue = 0; // Initialize revenue variable
+    let statusCounts = {
+      assigned: 0,
+      unassigned: 0,
+      in_progress: 0,
+      completed: 0,
+    };
+
+    // Query database for orders
     if (id) {
+      // Handle single order retrieval
       const order = await Order.findById(id)
         .populate("client_id")
         .populate("driver_id");
@@ -153,6 +167,7 @@ const get = async (req, res, next) => {
 
       res.status(200).json({ order });
     } else {
+      // Handle multiple orders retrieval
       let searchCriteria = {};
 
       if (query) {
@@ -194,11 +209,34 @@ const get = async (req, res, next) => {
         .populate("driver_id", "username")
         .exec();
 
+      // Calculate total revenue and status counts from fetched orders
+      orders.forEach(order => {
+        revenue += order.cost;
+        switch (order.order_status) {
+          case 0:
+            statusCounts.unassigned++;
+            break;
+          case 1:
+            statusCounts.assigned++;
+            break;
+          case 2:
+            statusCounts.in_progress++;
+            break;
+          case 3:
+            statusCounts.completed++;
+            break;
+          default:
+            break;
+        }
+      });
+
       res.status(200).json({
         total,
         page: Number(page),
         limit: Number(limit),
         orders,
+        revenue, 
+        statusCounts, 
       });
     }
   } catch (error) {
