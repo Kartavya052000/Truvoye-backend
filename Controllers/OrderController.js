@@ -70,7 +70,11 @@ const submitOrder = async (req, res) => {
     senders_email,
     receivers_name,
     receivers_email,
+    cost,
+    distance,
+    duration
   } = req.body;
+
   try {
     const newClient = new Client({
       senders_name,
@@ -93,10 +97,13 @@ const submitOrder = async (req, res) => {
         receivers_name,
         receivers_email,
       },
+      cost,
+      distance,
+      duration
     });
 
     order.save();
-    console.log(order)
+    console.log(order);
 
     res.send("Data sent successfully!");
   } catch (error) {
@@ -107,7 +114,7 @@ const submitOrder = async (req, res) => {
 };
 
 /**
- * Retrieve Orders from database
+ * Retrieve Orders from the database
  *
  * @description This function handles two scenarios:
  * 1. If an Order ID is provided in the URL parameters, it returns the Order associated with that ID.
@@ -117,26 +124,39 @@ const submitOrder = async (req, res) => {
  * @param {string} id - The unique ID of the Order. If provided, returns the Order with this ID.
  *
  * Query Parameters:
- * @param {string} [limit=10] - The maximum number of records to return per page. Defaults to 10 if not provided.
- * @param {string} lastId - The ID of the last Order from the previous response. If provided, returns records starting after this ID.
- * @param {string} [status=0] - The status of the Order: 0 - unassigned, 1 - assigned, 2 - completed. Defaults to 0 if not provided.
- * @param {string} query - The search term to match against pickup_address, receiver_address, and driver's username.
+ * @param {string} [query] - The search term to match against pickup_address, receiver_address, and driver's username.
+ * @param {number} [page=1] - The page number for pagination. Defaults to 1 if not provided.
+ * @param {number} [limit=10] - The maximum number of records to return per page. Defaults to 10 if not provided.
+ * @param {number} [status] - The status of the Order: 0 - unassigned, 1 - assigned, 2 - progress, 3 - completed.
  *
  * Examples:
- * - GET /Order/get/:id - Returns the order associated with the provided ID.
- * - GET /Order/get?limit=30 - Returns the first 30 order records.
- * - GET /Order/get?limit=30&lastId=LAST_ORDER_ID - Returns the next 30 order records starting after the provided lastId.
- * - GET /Order/get?limit=30&lastId=LAST_ORDER_ID&status=0 - Returns the next 30 unassigned order records starting after the provided lastId.
- * - GET /Order/get?query=Main%20Street - Returns orders where pickup_address or receiver_address contains "Main Street".
- * - GET /Order/get?query=David - Returns orders where the driver's username contains "David".
+ * - GET /order/get/:id - Returns the order associated with the provided ID.
+ * - GET /order/get?limit=30 - Returns the first 30 order records.
+ * - GET /order/get?page=2&limit=30 - Returns the second page of order records with 30 records per page.
+ * - GET /order/get?query=Main%20Street - Returns orders where pickup_address or receiver_address contains "Main Street".
+ * - GET /order/get?query=David - Returns orders where the driver's username contains "David".
+ * - GET /order/get?status=0 - Returns orders that are unassigned.
  */
+
+
+
+
 const get = async (req, res, next) => {
   const { id } = req.params;
   const { query, page = 1, limit = 10, status } = req.query;
 
   try {
+    let revenue = 0; // Initialize revenue variable
+    let statusCounts = {
+      assigned: 0,
+      unassigned: 0,
+      in_progress: 0,
+      completed: 0,
+    };
+
+    // Query database for orders
     if (id) {
-      // Fetch a specific order by ID
+      // Handle single order retrieval
       const order = await Order.findById(id)
         .populate("client_id")
         .populate("driver_id");
@@ -147,10 +167,9 @@ const get = async (req, res, next) => {
 
       res.status(200).json({ order });
     } else {
-      // Initialize search criteria
+      // Handle multiple orders retrieval
       let searchCriteria = {};
 
-      // Add query search criteria
       if (query) {
         const regex = new RegExp(query, "i");
         searchCriteria.$or = [
@@ -160,16 +179,14 @@ const get = async (req, res, next) => {
           { "client_info.receivers_name": regex },
           { "client_info.senders_email": regex },
           { "client_info.senders_name": regex },
-          { "driver_info.username": regex }
+          { "driver_info.username": regex },
         ];
       }
 
-      // Add status search criteria
       if (status) {
         searchCriteria.order_status = status;
       }
 
-      // Default search criteria if no query or status is provided
       if (!query && !status) {
         searchCriteria.$or = [
           { "pickup_address.address_name": { $exists: true } },
@@ -181,25 +198,45 @@ const get = async (req, res, next) => {
         ];
       }
 
-      // Calculate the skip value
       const skip = (Number(page) - 1) * Number(limit);
 
-      // Count total documents matching the search criteria
       const total = await Order.countDocuments(searchCriteria);
 
-      // Fetch orders with pagination using skip and limit
       const orders = await Order.find(searchCriteria)
-        .sort({  created_at: -1, _id: 1 })  // Ensure consistent sorting
-        .skip(skip)  // Skip the first N documents
-        .limit(Number(limit))  // Apply limit to the number of documents returned
+        .sort({ created_at: -1, _id: 1 })
+        .skip(skip)
+        .limit(Number(limit))
         .populate("driver_id", "username")
         .exec();
+
+      // Calculate total revenue and status counts from fetched orders
+      orders.forEach(order => {
+        revenue += order.cost;
+        switch (order.order_status) {
+          case 0:
+            statusCounts.unassigned++;
+            break;
+          case 1:
+            statusCounts.assigned++;
+            break;
+          case 2:
+            statusCounts.in_progress++;
+            break;
+          case 3:
+            statusCounts.completed++;
+            break;
+          default:
+            break;
+        }
+      });
 
       res.status(200).json({
         total,
         page: Number(page),
         limit: Number(limit),
         orders,
+        revenue, 
+        statusCounts, 
       });
     }
   } catch (error) {
@@ -278,7 +315,7 @@ const assignOrderToDriver = async (req, res, next) => {
 
     // Assign driver_id to the order
     order.driver_id = driverId;
-    order.driver_info = {username};
+    order.driver_info = { username };
     order.order_status = 1; // to change order status to assigned
     await order.save();
 

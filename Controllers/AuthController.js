@@ -3,6 +3,7 @@ const { createSecretToken } = require("../util/SecretToken");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const transporter = require('../nodemailerConfig');
+const { default: mongoose } = require("mongoose");
 const { PRODUCTION_LINK } = process.env;
 
 // Function for SignUp
@@ -33,7 +34,7 @@ module.exports.Signup = async (req, res, next) => {
       from: 'kartavyabhayana1@gmail.com',
       to: email,
       subject: 'Account Verification email',
-      html: `Click <a href="${verifyLink}">here</a> to confirm your email address.`,
+      html: `Click <a href="${resetLink}">here</a> to confirm your email address.`,
     };
 
     await transporter.sendMail(mailOptions);
@@ -80,6 +81,57 @@ module.exports.Signup = async (req, res, next) => {
       console.error(error);
     }
   };
+
+
+  module.exports.GetAdmin = async (req, res) => {
+    const { id } = req.params;
+    try {
+      if (mongoose.Types.ObjectId.isValid(id) && id !== "null" && id !== "undefined") {
+        const user = await User.findOne({ _id: id }); // Corrected User model usage
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json({ user });
+      } else {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  };
+
+  module.exports.EditAdmin = async (req, res) => {
+    const { id } = req.params;
+    const { email, username, password } = req.body;
+
+    try {
+        // Check if ID is valid
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid user ID" });
+        }
+
+        // Find user by ID
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update fields if they are provided
+        if (email) user.email = email;
+        if (username) user.username = username;
+        if (password) user.password = await bcrypt.hash(password, 10); // Hash the password before saving
+        user.updatedAt = new Date();
+
+        await user.save();
+        
+        res.status(200).json({ message: "Admin details updated successfully", user });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
   module.exports.VerifyAccount = async (req, res, next) => {
 
     try {
