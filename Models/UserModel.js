@@ -19,6 +19,11 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: new Date(),
   },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+    select: false, 
+  },
   verified:{
     type:Boolean,
     default: false  // Default value is false

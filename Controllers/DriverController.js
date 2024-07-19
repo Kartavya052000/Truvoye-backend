@@ -427,7 +427,7 @@ module.exports.GetOrders = async (req, res, next) => {
     if (driverId) {
       let query = {};
       if (driverId) {
-        query.driver_id = driverId;
+        // query.driver_id = driverId;
       } else {
         return res.status(404).json({ error: "Driver id is required" });
       }
@@ -435,7 +435,7 @@ module.exports.GetOrders = async (req, res, next) => {
       if (orderStatus) {
         query.order_status = orderStatus;
       }
-
+console.log(query,"qq")
       const orders = await OrderModel.find(query).exec();
 
       if (!orders) {
