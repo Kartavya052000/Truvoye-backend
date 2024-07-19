@@ -18,7 +18,7 @@ app.use(bodyParser.json());
 
 app.use(
     cors({
-      origin: ["https://truvoye.vercel.app", "http://localhost:3000","https://truvoye.com"], // Add allowed origins
+      origin: ["https://truvoye.com","https://www.truvoye.com","https://truvoye.vercel.app", "http://localhost:3000"], // Add allowed origins
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true,
     })
