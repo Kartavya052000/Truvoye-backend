@@ -33,7 +33,7 @@ module.exports.Signup = async (req, res, next) => {
       from: 'kartavyabhayana1@gmail.com',
       to: email,
       subject: 'Account Verification email',
-      html: `Click <a href="${verifyLink}">here</a> to confirm your email address.`,
+      html: `Click <a href="${resetLink}">here</a> to confirm your email address.`,
     };
 
     await transporter.sendMail(mailOptions);
