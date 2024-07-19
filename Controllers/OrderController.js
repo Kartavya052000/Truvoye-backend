@@ -72,7 +72,7 @@ const submitOrder = async (req, res) => {
     receivers_email,
     cost,
     distance,
-    duration
+    duration,
   } = req.body;
 
   try {
@@ -99,7 +99,7 @@ const submitOrder = async (req, res) => {
       },
       cost,
       distance,
-      duration
+      duration,
     });
 
     order.save();
@@ -137,9 +137,6 @@ const submitOrder = async (req, res) => {
  * - GET /order/get?query=David - Returns orders where the driver's username contains "David".
  * - GET /order/get?status=0 - Returns orders that are unassigned.
  */
-
-
-
 
 const get = async (req, res, next) => {
   const { id } = req.params;
@@ -210,33 +207,33 @@ const get = async (req, res, next) => {
         .exec();
 
       // Calculate total revenue and status counts from fetched orders
-      orders.forEach(order => {
-        revenue += order.cost;
-        switch (order.order_status) {
-          case 0:
-            statusCounts.unassigned++;
-            break;
-          case 1:
-            statusCounts.assigned++;
-            break;
-          case 2:
-            statusCounts.in_progress++;
-            break;
-          case 3:
-            statusCounts.completed++;
-            break;
-          default:
-            break;
-        }
-      });
+      // orders.forEach(order => {
+      //   revenue += order.cost;
+      //   switch (order.order_status) {
+      //     case 0:
+      //       statusCounts.unassigned++;
+      //       break;
+      //     case 1:
+      //       statusCounts.assigned++;
+      //       break;
+      //     case 2:
+      //       statusCounts.in_progress++;
+      //       break;
+      //     case 3:
+      //       statusCounts.completed++;
+      //       break;
+      //     default:
+      //       break;
+      //   }
+      // });
 
       res.status(200).json({
         total,
         page: Number(page),
         limit: Number(limit),
         orders,
-        revenue, 
-        statusCounts, 
+        revenue,
+        statusCounts,
       });
     }
   } catch (error) {
@@ -245,6 +242,44 @@ const get = async (req, res, next) => {
   }
 
   next();
+};
+
+const getStatusReport = async (req, res, next) => {
+  try {
+    const statusCounts = {
+      assigned: 0,
+      unassigned: 0,
+      in_progress: 0,
+      completed: 0,
+    };
+
+    const counts = await Order.aggregate([
+      {
+        $group: {
+          _id: "$order_status",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    counts.forEach(({ _id, count }) => {
+      if (_id === 0) {
+        statusCounts.unassigned = count;
+      } else if (_id === 1) {
+        statusCounts.assigned = count;
+      } else if (_id === 2) {
+        statusCounts.in_progress = count;
+      } else if (_id === 3) {
+        statusCounts.completed = count;
+      }
+    });
+
+    res.status(200).json({
+      statusCounts,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 /**
@@ -332,4 +367,5 @@ module.exports = {
   get,
   search,
   assignOrderToDriver,
+  getStatusReport
 };
