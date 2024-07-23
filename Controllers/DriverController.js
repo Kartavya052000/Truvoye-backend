@@ -144,7 +144,6 @@ module.exports.Get = async (req, res, next) => {
     const totalCount = await Driver.countDocuments();
     return res.status(200).json({ totalCount });
   }
-
   try {
     if (
       mongoose.Types.ObjectId.isValid(id) &&

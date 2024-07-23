@@ -260,15 +260,16 @@ const getStatusReport = async (req, res, next) => {
           count: { $sum: 1 },
           totalCost: { $sum: "$cost" }
 
-
         }
       }
     ]);
     let totalCount = 0;
     let totalRevenue = 0;
+
     counts.forEach(({ _id, count, totalCost }) => {
       totalCount += count;
       totalRevenue += totalCost || 0; // If `totalCost` is undefined, default to 0
+
       if (_id === 0) {
         statusCounts.unassigned = count;
       } else if (_id === 1) {
@@ -279,12 +280,11 @@ const getStatusReport = async (req, res, next) => {
         statusCounts.completed = count;
       }
     });
-
+console.log(counts);
     res.status(200).json({
       statusCounts,
       totalCount,
       totalRevenue
-
 
     });
   } catch (error) {
