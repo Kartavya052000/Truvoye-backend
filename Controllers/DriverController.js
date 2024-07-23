@@ -42,7 +42,8 @@ module.exports.Add = async (req, res, next) => {
 
     // TODO : update the link when hosting
     // const verifyLink = `http://localhost:3000/driver/reset-password/${token}`;
-    const verifyLink = `http://localhost:3000/driver/reset-password/${token}`;
+    // const verifyLink = `http://localhost:3000/driver/reset-password/${token}`;
+    const verifyLink = `${process.env.PRODUCTION_LINK}/driver/reset-password/${token}`;
 
     const mailOptions = {
       from: "kartavyabhayana1@gmail.com",
