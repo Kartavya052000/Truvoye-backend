@@ -28,7 +28,7 @@ module.exports.Signup = async (req, res, next) => {
     
     // Send email with the password reset link containing the token
     // const verifyLink = `http://localhost:3000/verify-email/${token}`;
-    const resetLink = `${process.env.PRODUCTION_LINK}verify-email/${token}`;
+    const resetLink = `${process.env.PRODUCTION_LINK}/verify-email/${token}`;
     
     const mailOptions = {
       from: 'kartavyabhayana1@gmail.com',
