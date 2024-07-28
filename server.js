@@ -49,8 +49,19 @@ app.use("/api/SubmitOrder", submitOrder);
 app.use("/api/driver", driverRoute);
 
 //Route for downloading project-proposal
-app.use('/api', fileRoutes);
+// app.use('/api', fileRoutes);
 
+// Endpoint to download PDF
+app.get('/api/download/:filename', (req, res) => {
+  const filename = req.params.filename;
+  // console.log(filename)
+  const filePath = path.join(__dirname, 'Uploads', filename);
+  res.download(filePath, (err) => {
+      if (err) {
+          res.status(404).send('File not found');
+      }
+  });
+});
 app.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
   });
