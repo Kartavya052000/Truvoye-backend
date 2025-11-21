@@ -1,72 +1,75 @@
-//Main server file: Initializes the Express application, connects to MongoDB, and sets up the routes.
-
-const express = require("express");  
+const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const app = express();
+const bodyParser = require("body-parser");
 require("dotenv").config();
+
 const authRoute = require("./Routes/AuthRoute");
-const bodyParser = require('body-parser');
-const orderRoute = require('./Routes/OrdersRoute');
-const submitOrder = require('./Routes/OrdersRoute');
-const driverRoute = require('./Routes/DriverRoute');
-const contactRoute = require('./Routes/ContactRoute');
+const orderRoute = require("./Routes/OrdersRoute");
+const driverRoute = require("./Routes/DriverRoute");
+const contactRoute = require("./Routes/ContactRoute");
+const fileRoutes = require("./Routes/FileRoute");
 
-const path = require('path');
-const fileRoutes = require('./Routes/FileRoute');
-
-const {MONGO_URL,PORT} = process.env;
-app.use(express.json());
+const app = express();
+const { MONGO_URL, PORT } = process.env;
 
 
+// -------------------------------
+// 1. ENABLE CORS FIRST (VERY IMPORTANT)
+// -------------------------------
 app.use(
-    cors({
-      origin: ["https://truvoye.com","https://www.truvoye.com","https://truvoye.vercel.app", "http://localhost:3000", "https://truvoye-frontend.vercel.app"], // Add allowed origins
-      methods: ["GET", "POST", "PUT", "DELETE"],
-      credentials: true,
-    })
-  );
+  cors({
+    origin: [
+      "https://truvoye.com",
+      "https://www.truvoye.com",
+      "https://truvoye.vercel.app",
+      "http://localhost:3000",
+      "https://truvoye-frontend.vercel.app",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
 
-  // app.use(bodyParser.urlencoded({ extended: true }));
+// Handle preflight requests
+app.options("*", cors());
+
+
+// -------------------------------
+// 2. BODY PARSERS AFTER CORS
+// -------------------------------
+app.use(express.json());
 app.use(bodyParser.json());
 
+
+// -------------------------------
+// 3. CONNECT TO MONGO
+// -------------------------------
 mongoose
   .connect(MONGO_URL)
-  .then(() => console.log("MongoDB is  connected successfully"))
+  .then(() => console.log("MongoDB connected successfully"))
   .catch((err) => console.error(err));
-  
-app.get('/api/test',(req,res)=>{
-    res.send("Hello World! v2");
-})
+
+
+// -------------------------------
+// 4. ROUTES
+// -------------------------------
+app.get('/api/test', (req, res) => {
+  res.send("Hello World! v2");
+});
 
 app.use("/api/auth", authRoute);
-
 app.use("/api/orderDetails", orderRoute);
 app.use("/api/order", orderRoute);
-
-app.use("/api/SubmitOrder", submitOrder);
-
-
-
+app.use("/api/SubmitOrder", orderRoute);
 app.use("/api/driver", driverRoute);
-
 app.use("/api/contacts", contactRoute);
-
-
-//Route for downloading project-proposal
 app.use('/api', fileRoutes);
 
-// Endpoint to download PDF
-// app.get('/api/download/:filename', (req, res) => {
-//   const filename = req.params.filename;
-//   // console.log(filename)
-//   const filePath = path.join(__dirname, 'Uploads', filename);
-//   res.download(filePath, (err) => {
-//       if (err) {
-//           res.status(404).send('File not found');
-//       }
-//   });
-// });
+
+// -------------------------------
+// 5. START SERVER
+// -------------------------------
 app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
-  });
+  console.log(`Server is listening on port ${PORT}`);
+});
