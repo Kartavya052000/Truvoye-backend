@@ -17,8 +17,7 @@ const fileRoutes = require('./Routes/FileRoute');
 
 const {MONGO_URL,PORT} = process.env;
 app.use(express.json());
-// app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+
 
 app.use(
     cors({
@@ -28,7 +27,8 @@ app.use(
     })
   );
 
-  
+  // app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 mongoose
   .connect(MONGO_URL)
